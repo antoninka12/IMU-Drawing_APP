@@ -18,6 +18,9 @@
 #include "bleclient.h"
 #include "imusample.h"
 
+#include "motionmapper.h"
+#include "motiontestwidget.h"
+
 
 QT_BEGIN_NAMESPACE
 
@@ -56,6 +59,9 @@ private:
     void processImuLine(
         const QByteArray &line
         );
+
+    MotionMapper m_motionMapper;
+    MotionTestWidget *m_motionTestWidget = nullptr;
 
 
     // ===================================================

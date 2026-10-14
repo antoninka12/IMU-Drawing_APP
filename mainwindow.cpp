@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    m_motionTestWidget = new MotionTestWidget();
+    m_motionTestWidget->show();
 
 
     // ===================================================
@@ -266,6 +268,8 @@ MainWindow::~MainWindow()
         m_csvFile.close();
     }
 
+    delete m_motionTestWidget;
+    m_motionTestWidget = nullptr;
 
     delete ui;
 }
@@ -352,6 +356,19 @@ void MainWindow::processImuLine(
         return;
     }
 
+    const QPointF delta = m_motionMapper.processSample(sample);
+    if (m_motionTestWidget) {
+        if (m_motionMapper.isReady()) {
+            m_motionTestWidget->setStatusText(
+                QStringLiteral("Gotowe - obrot dloni steruje punktem"));
+            m_motionTestWidget->applyDelta(delta);
+        } else {
+            m_motionTestWidget->setStatusText(
+                QStringLiteral("Kalibracja offsetu: %1/%2 (nie ruszaj IMU)")
+                    .arg(m_motionMapper.calibrationProgress())
+                    .arg(m_motionMapper.calibrationTarget()));
+        }
+    }
 
     // ===================================================
     // WYKRES
@@ -627,6 +644,12 @@ void MainWindow::resetStatistics()
 
 
     updateStatisticsUi();
+    m_motionMapper.reset();
+    if (m_motionTestWidget) {
+        m_motionTestWidget->resetPoint();
+        m_motionTestWidget->setStatusText(
+            QStringLiteral("Polacz BLE i trzymaj czujnik nieruchomo"));
+    }
 }
 
 

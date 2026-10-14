@@ -15,6 +15,9 @@ qt_add_executable(asd
     bleclient.h bleclient.cpp
     imusample.h
     imupacketparser.h imupacketparser.cpp
+    motionmapper.cpp motionmapper.h
+    motiontestwidget.cpp motiontestwidget.h
+
 )
 
 target_link_libraries(asd
