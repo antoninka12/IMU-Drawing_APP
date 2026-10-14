@@ -21,6 +21,7 @@
 #include "motionmapper.h"
 #include "motiontestwidget.h"
 
+#include "drawingstatefilter.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -62,6 +63,8 @@ private:
 
     MotionMapper m_motionMapper;
     MotionTestWidget *m_motionTestWidget = nullptr;
+
+    DrawingStateFilter m_drawingStateFilter;
 
 
     // ===================================================

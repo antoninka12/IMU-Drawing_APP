@@ -17,6 +17,9 @@ qt_add_executable(asd
     imupacketparser.h imupacketparser.cpp
     motionmapper.cpp motionmapper.h
     motiontestwidget.cpp motiontestwidget.h
+    motionmapper.h motionmapper.cpp
+    motiontestwidget.h motiontestwidget.cpp
+    drawingstatefilter.h
 
 )
 

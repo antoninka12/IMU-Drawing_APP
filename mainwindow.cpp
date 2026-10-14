@@ -17,6 +17,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     m_motionTestWidget = new MotionTestWidget();
+    m_motionTestWidget->setAttribute(Qt::WA_QuitOnClose, false);
+    m_motionTestWidget->show();
+    m_motionMapper.setSensitivity(2.0, 2.0);
+    m_motionMapper.setDeadZone(2.5);
+    m_motionTestWidget = new MotionTestWidget();
     m_motionTestWidget->show();
 
 
@@ -261,6 +266,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    delete m_motionTestWidget;
+    m_motionTestWidget = nullptr;
     if (m_recording)
     {
         m_csvStream.flush();
@@ -331,42 +338,70 @@ void MainWindow::processBleData(
 // PRZETWARZANIE JEDNEJ PRÓBKI
 // =======================================================
 
-void MainWindow::processImuLine(
-    const QByteArray &line
-    )
+void MainWindow::processImuLine(const QByteArray &line)
 {
     ImuSample sample{};
-
 
     // ===================================================
     // PARSER CSV
     // ===================================================
 
-    if (
-        !ImuPacketParser::parse(
-            line,
-            sample
-            )
-        )
+    if (!ImuPacketParser::parse(line, sample))
     {
         ui->logEdit->appendPlainText(
             "ERROR: invalid IMU packet"
             );
-
         return;
     }
 
+    // ===================================================
+    // PRZYCISK - POTWIERDZENIE STANU (0.5 s / 80%)
+    // ===================================================
+
+    const bool changed = m_drawingStateFilter.addSample(
+        sample.drawingEnabled,
+        static_cast<std::int64_t>(sample.timestampUs)
+        );
+
+    const bool confirmed = m_drawingStateFilter.state();
+
+    if (m_motionTestWidget)
+    {
+        m_motionTestWidget->setDrawingEnabled(confirmed);
+    }
+
+    if (changed)
+    {
+        ui->logEdit->appendPlainText(
+            confirmed
+                ? "RYSOWANIE ON (0.5 s / 80%)"
+                : "RYSOWANIE OFF (0.5 s / 80%)"
+            );
+    }
+
+    // ===================================================
+    // MAPOWANIE RUCHU I KALIBRACJA
+    // ===================================================
+
     const QPointF delta = m_motionMapper.processSample(sample);
-    if (m_motionTestWidget) {
-        if (m_motionMapper.isReady()) {
+
+    if (m_motionTestWidget)
+    {
+        if (m_motionMapper.isReady())
+        {
             m_motionTestWidget->setStatusText(
-                QStringLiteral("Gotowe - obrot dloni steruje punktem"));
+                QStringLiteral("Sterowanie aktywne | C = wyczysc")
+                );
+
             m_motionTestWidget->applyDelta(delta);
-        } else {
+        }
+        else
+        {
             m_motionTestWidget->setStatusText(
-                QStringLiteral("Kalibracja offsetu: %1/%2 (nie ruszaj IMU)")
+                QStringLiteral("Kalibracja: %1/%2 - trzymaj nieruchomo")
                     .arg(m_motionMapper.calibrationProgress())
-                    .arg(m_motionMapper.calibrationTarget()));
+                    .arg(m_motionMapper.calibrationTarget())
+                );
         }
     }
 
@@ -583,6 +618,13 @@ void MainWindow::processImuLine(
 
 void MainWindow::resetStatistics()
 {
+    m_drawingStateFilter.reset();
+    m_motionMapper.reset();
+    if (m_motionTestWidget) {
+        m_motionTestWidget->setDrawingEnabled(false);
+        m_motionTestWidget->resetPoint();
+    }
+
     m_receivedSamples = 0;
 
     m_lostSamples = 0;
