@@ -16,12 +16,12 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    m_motionMapper.setSensitivity(8.0, 8.0);
+    m_motionMapper.setDeadZone(0.5);
+
     m_motionTestWidget = new MotionTestWidget();
     m_motionTestWidget->setAttribute(Qt::WA_QuitOnClose, false);
-    m_motionTestWidget->show();
-    m_motionMapper.setSensitivity(2.0, 2.0);
-    m_motionMapper.setDeadZone(2.5);
-    m_motionTestWidget = new MotionTestWidget();
     m_motionTestWidget->show();
 
 
@@ -266,12 +266,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    delete m_motionTestWidget;
-    m_motionTestWidget = nullptr;
     if (m_recording)
     {
         m_csvStream.flush();
-
         m_csvFile.close();
     }
 
@@ -384,6 +381,18 @@ void MainWindow::processImuLine(const QByteArray &line)
     // ===================================================
 
     const QPointF delta = m_motionMapper.processSample(sample);
+    static int debugCounter = 0;
+
+    if (++debugCounter % 25 == 0)
+    {
+        ui->logEdit->appendPlainText(
+            QString("GYRO gx=%1 gy=%2 | DELTA dx=%3 dy=%4")
+                .arg(sample.filteredGx, 0, 'f', 3)
+                .arg(sample.filteredGy, 0, 'f', 3)
+                .arg(delta.x(), 0, 'f', 3)
+                .arg(delta.y(), 0, 'f', 3)
+            );
+    }
 
     if (m_motionTestWidget)
     {
